@@ -1,0 +1,38 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+venv/
+.venv
+env/
+*/env/
+*/*/env/
+
+# Logs and databases
+*.log
+*.sql
+db.sqlite3
+
+# Static and media files (optional, depending on your setup)
+media/*
+static/*
+
+# PyCharm and other IDE files
+.idea/
+*.iml
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Packages
+*.egg-info
+dist
+build
+
+# Temporary files
+*.swp
+*~
