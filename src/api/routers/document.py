@@ -6,7 +6,6 @@ from ...api.exceptions import NotFoundException, BadRequestException
 from ...api.dependencies import get_db
 
 router = APIRouter(prefix="/documents", tags=["documents"])
-
 @router.post("/", response_model=Document)
 async def create_document(library_id: str, document: DocumentCreate, db: VectorDB = Depends(get_db)):
     try:
