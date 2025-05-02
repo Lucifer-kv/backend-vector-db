@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict,List
+from typing import Dict, List
 from ...services.vector_db import VectorDB
 from ...services.embedding import generate_embedding
 from ...api.schemas import SearchRequest, GlobalSearchResult
@@ -12,16 +12,8 @@ router = APIRouter(tags=["search"])
 @router.post("/libraries/{library_id}/search", response_model=Dict[str, str | float])
 async def search(library_id: str, request: SearchRequest, db: VectorDB = Depends(get_db)):
     try:
-        try:
-            query_embedding = generate_embedding(request.query_text)
-        except ValueError as e:
-            print(f"Failed to generate embedding: {e}")
-            query_embedding = [0.0] * 1024
-        except Exception as e:
-            print(f"Error calling Cohere API for query '{request.query_text}': {e}")
-            query_embedding = [0.0] * 1024
-        
-        k = 5  
+        query_embedding = generate_embedding(request.query_text)
+        k = 5
         results = db.search(library_id, query_embedding, k)
         
         library = db.get_library(library_id)
@@ -30,33 +22,21 @@ async def search(library_id: str, request: SearchRequest, db: VectorDB = Depends
         
         filtered_results = []
         for result in results:
-            chunk = None
-            for doc in library.documents:
-                for c in doc.chunks:
-                    if c.id == result.chunk_id:
-                        chunk = c
-                        break
-                if chunk:
-                    break
+            chunk = next(
+                (c for doc in library.documents for c in doc.chunks if c.id == result.chunk_id),
+                None
+            )
             if not chunk:
                 continue
             
             if request.metadata_filters:
-                query_name = request.metadata_filters.name.lower()
-                chunk_name = chunk.metadata.name.lower()
-                if query_name not in chunk_name:
+                if request.metadata_filters.name and request.metadata_filters.name.lower() not in chunk.metadata.name.lower():
                     continue
-                
-                query_date = request.metadata_filters.createdAfter
-                chunk_date = chunk.metadata.createdAt
-                
-                if chunk_date.tzinfo is not None:
-                    chunk_date = chunk_date.replace(tzinfo=None)
-                if query_date.tzinfo is not None:
-                    query_date = query_date.replace(tzinfo=None)
-                
-                if chunk_date <= query_date:
-                    continue
+                if request.metadata_filters.createdAfter:
+                    query_date = datetime.strptime(request.metadata_filters.createdAfter, "%Y-%m-%d")
+                    chunk_date = datetime.strptime(chunk.metadata.createdAt, "%Y-%m-%d") if isinstance(chunk.metadata.createdAt, str) else chunk.metadata.createdAt
+                    if chunk_date <= query_date:
+                        continue
             
             filtered_results.append((result, chunk))
         
@@ -64,12 +44,7 @@ async def search(library_id: str, request: SearchRequest, db: VectorDB = Depends
             return {"text": "", "similarity": 0.0}
         
         max_result, max_chunk = max(filtered_results, key=lambda x: x[0].similarity)
-        return {
-            "text": max_chunk.text,
-            "similarity": max_result.similarity
-        }
-    except ValueError as e:
-        raise BadRequestException(detail=str(e))
+        return {"text": max_chunk.text, "similarity": max_result.similarity}
     except Exception as e:
         raise InternalServerErrorException(detail=f"Unexpected error: {str(e)}")
 
@@ -85,7 +60,7 @@ async def search_all_libraries(request: SearchRequest, db: VectorDB = Depends(ge
             print(f"Error calling Cohere API for query '{request.query_text}': {e}")
             query_embedding = [0.0] * 1024
         
-        k = 5  
+        k = 5  # Hardcoded k
         print(f"Number of libraries: {len(db.libraries)}, search_k: {k}")
         total_chunks = sum(len(doc.chunks) for lib in db.libraries.values() for doc in lib.documents)
         print(f"Total chunks across all libraries: {total_chunks}")
@@ -103,7 +78,7 @@ async def search_all_libraries(request: SearchRequest, db: VectorDB = Depends(ge
                 for c in doc.chunks:
                     if c.id == result.chunk_id:
                         chunk = c
-                        document_id = doc.id  
+                        document_id = doc.id
                         break
                 if chunk:
                     break
@@ -119,10 +94,11 @@ async def search_all_libraries(request: SearchRequest, db: VectorDB = Depends(ge
                 chunk_name = chunk.metadata.name.lower()
                 if query_name not in chunk_name:
                     continue
-                
+            
                 try:
                     query_date_str = request.metadata_filters.createdAfter
                     query_date = datetime.strptime(query_date_str, "%Y-%m-%d")
+                    
                     
                     if isinstance(chunk.metadata.createdAt, str):
                         chunk_date = datetime.strptime(chunk.metadata.createdAt, "%Y-%m-%dT%H:%M:%S.%f")
@@ -139,7 +115,7 @@ async def search_all_libraries(request: SearchRequest, db: VectorDB = Depends(ge
                     if chunk_date <= query_date:
                         continue
                 except ValueError:
-                    raise HTTPException(status_code=400, detail="Invalid date format for createdAt: must be YYYY-MM-DD")
+                    raise HTTPException(status_code=400, detail="Invalid date format for createdAfter: must be YYYY-MM-DD")
             
             filtered_results.append((result, chunk, document_id))
         

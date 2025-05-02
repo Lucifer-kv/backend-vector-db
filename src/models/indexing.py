@@ -79,7 +79,7 @@ class HNSWIndex:
         results = []
         while distances and len(results) < k:
             dist, chunk_id = heapq.heappop(distances)
-            similarity = 1 / (1 + dist)
+            similarity = 1 / (1 + dist)  # Ensure similarity is normalized
             results.append(SearchResult(library_id=library_id, chunk_id=chunk_id, similarity=similarity))
         
         return results

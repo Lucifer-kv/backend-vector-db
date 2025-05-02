@@ -5,7 +5,7 @@ from ...api.schemas import LibraryCreate, LibraryUpdate
 from ...api.exceptions import NotFoundException, BadRequestException
 from ...api.dependencies import get_db
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/libraries", tags=["libraries"])
 
@@ -16,7 +16,7 @@ async def create_library(library: LibraryCreate, db: VectorDB = Depends(get_db))
         name=library.name,
         documents=[],
         metadata=library.metadata,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)  # Updated to use timezone-aware datetime
     )
     try:
         db.create_library(library_obj)
