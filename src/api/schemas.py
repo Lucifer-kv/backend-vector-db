@@ -26,12 +26,11 @@ class ChunkUpdate(BaseModel):
 
 class MetadataFilters(BaseModel):
     name: Optional[str] = None
-    createdAt: Optional[str] = None
+    createdAfter: Optional[str] = None
 
 class SearchRequest(BaseModel):
     query_text: str
     metadata_filters: Optional[MetadataFilters] = None
-    match_mode: str = "any"
 
 class GlobalSearchResult(BaseModel):
     library_id: str

@@ -21,7 +21,7 @@ async def search(library_id: str, request: SearchRequest, db: VectorDB = Depends
             print(f"Error calling Cohere API for query '{request.query_text}': {e}")
             query_embedding = [0.0] * 1024
         
-        k = 5  # Hardcoded k
+        k = 5  
         results = db.search(library_id, query_embedding, k)
         
         library = db.get_library(library_id)
@@ -47,7 +47,7 @@ async def search(library_id: str, request: SearchRequest, db: VectorDB = Depends
                 if query_name not in chunk_name:
                     continue
                 
-                query_date = request.metadata_filters.createdAt
+                query_date = request.metadata_filters.createdAfter
                 chunk_date = chunk.metadata.createdAt
                 
                 if chunk_date.tzinfo is not None:
@@ -85,7 +85,7 @@ async def search_all_libraries(request: SearchRequest, db: VectorDB = Depends(ge
             print(f"Error calling Cohere API for query '{request.query_text}': {e}")
             query_embedding = [0.0] * 1024
         
-        k = 5  # Hardcoded k
+        k = 5  
         print(f"Number of libraries: {len(db.libraries)}, search_k: {k}")
         total_chunks = sum(len(doc.chunks) for lib in db.libraries.values() for doc in lib.documents)
         print(f"Total chunks across all libraries: {total_chunks}")
@@ -103,7 +103,7 @@ async def search_all_libraries(request: SearchRequest, db: VectorDB = Depends(ge
                 for c in doc.chunks:
                     if c.id == result.chunk_id:
                         chunk = c
-                        document_id = doc.id  # Capture the document_id
+                        document_id = doc.id  
                         break
                 if chunk:
                     break
@@ -111,22 +111,19 @@ async def search_all_libraries(request: SearchRequest, db: VectorDB = Depends(ge
                 continue
             
             if request.metadata_filters:
-                # Check if both name and createdAt are provided; if not, skip this chunk
-                if request.metadata_filters.name is None or request.metadata_filters.createdAt is None:
+                
+                if request.metadata_filters.name is None or request.metadata_filters.createdAfter is None:
                     continue
                 
-                # %like% comparison for name (case-insensitive)
                 query_name = request.metadata_filters.name.lower()
                 chunk_name = chunk.metadata.name.lower()
                 if query_name not in chunk_name:
                     continue
                 
-                # createdAt comparison (chunk.createdAt must be strictly after query.createdAt)
                 try:
-                    query_date_str = request.metadata_filters.createdAt
+                    query_date_str = request.metadata_filters.createdAfter
                     query_date = datetime.strptime(query_date_str, "%Y-%m-%d")
                     
-                    # Handle chunk.metadata.createdAt based on its type
                     if isinstance(chunk.metadata.createdAt, str):
                         chunk_date = datetime.strptime(chunk.metadata.createdAt, "%Y-%m-%dT%H:%M:%S.%f")
                     elif isinstance(chunk.metadata.createdAt, datetime):
@@ -134,7 +131,6 @@ async def search_all_libraries(request: SearchRequest, db: VectorDB = Depends(ge
                     else:
                         raise ValueError("Invalid createdAt format in chunk metadata")
                     
-                    # Ensure both datetimes are naive for comparison
                     if chunk_date.tzinfo is not None:
                         chunk_date = chunk_date.replace(tzinfo=None)
                     if query_date.tzinfo is not None:

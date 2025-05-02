@@ -2,10 +2,10 @@ import requests
 from datetime import datetime
 from faker import Faker
 
-# Initialize Faker for generating random English sentences
+
 fake = Faker()
 
-# Base URL of your FastAPI server
+
 BASE_URL = "http://localhost:8000"
 
 def create_library(library_num):
@@ -40,7 +40,7 @@ def create_document(library_id, doc_num):
 
 def create_chunk(library_id, document_id, chunk_num):
     """Create a chunk in the specified document with a random English sentence."""
-    random_sentence = fake.sentence()  # Generate a random English sentence
+    random_sentence = fake.sentence()  
     response = requests.post(
         f"{BASE_URL}/libraries/{library_id}/documents/{document_id}/chunks",
         json={
@@ -55,19 +55,19 @@ def create_chunk(library_id, document_id, chunk_num):
     return response.json()["chunk_id"]
 
 def main():
-    # Create 100 libraries
+    
     for lib_num in range(1, 11):
         try:
             library_id = create_library(lib_num)
             print(f"Created library {lib_num}: {library_id}")
 
-            # Create 5 documents per library
+            
             for doc_num in range(1, 6):
                 try:
                     document_id = create_document(library_id, doc_num)
                     print(f"  Created document {doc_num} in library {lib_num}: {document_id}")
 
-                    # Create 100 chunks per document
+                    
                     for chunk_num in range(1, 11):
                         try:
                             chunk_id = create_chunk(library_id, document_id, chunk_num)

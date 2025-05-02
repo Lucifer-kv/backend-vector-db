@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic-settings
+cohere
+faker
+pytest
+requests
+numpy
+fuzzywuzzy
+python-Levenshtein
